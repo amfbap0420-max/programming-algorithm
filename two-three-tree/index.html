@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2-3木シミュレーター</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>2-3木シミュレーター</h1>
+  <p class="lead">数を挿入・削除すると、あふれたノードの分割や真ん中のキーの押し上げを1ステップずつ見られます。「6, 18, 5」のようにまとめて入れることもできます。</p>
+
+  <div class="controls">
+    <div class="group">
+      <label for="num" class="sr">数</label>
+      <input id="num" type="text" inputmode="numeric" placeholder="例：15 または 6,18,5" autocomplete="off">
+      <button id="bIns">挿入</button>
+      <button id="bDel" class="ghost">削除</button>
+      <button id="bFind" class="ghost">検索</button>
+    </div>
+    <div class="group">
+      <button id="bEx" class="ghost">例を入れる</button>
+      <button id="bRand" class="ghost">ランダムに1つ</button>
+      <button id="bUndo" class="ghost">元に戻す</button>
+      <button id="bReset" class="ghost">空にする</button>
+    </div>
+  </div>
+
+  <div class="board">
+    <div class="canvas" id="canvas"></div>
+    <div class="empty" id="empty">木は空です。数を入れて「挿入」を押すか、「例を入れる」を押してください。</div>
+    <div class="stepbar">
+      <div class="stepnav">
+        <button id="bPrev" class="ghost" aria-label="前のステップ">◀</button>
+        <button id="bNext" class="ghost" aria-label="次のステップ">▶</button>
+        <button id="bPlay" class="ghost play on" aria-pressed="true">自動再生</button>
+      </div>
+      <div class="msg" id="msg" aria-live="polite">ここに各ステップの説明が出ます。</div>
+      <div class="counter" id="counter"></div>
+    </div>
+  </div>
+
+  <section class="steplist" aria-labelledby="slh">
+    <h2 id="slh">ステップの一覧<small>行を押すとその場面に移ります</small></h2>
+    <ol id="stepList"></ol>
+  </section>
+
+  <div class="below">
+    <div class="legend">
+      <span><i class="sw" style="background:var(--new)"></i>入れたキー</span>
+      <span><i class="sw" style="border-color:var(--over)"></i>あふれ・空き</span>
+      <span><i class="sw" style="background:var(--up)"></i>押し上げ・移動</span>
+      <span><i class="sw" style="border-color:var(--visit)"></i>たどっている所</span>
+      <span><i class="sw" style="background:var(--found)"></i>見つかった</span>
+    </div>
+    <div class="stats" id="stats"></div>
+  </div>
+</div>
+
+<script src="tree23.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
