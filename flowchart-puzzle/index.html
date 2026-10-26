@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>フローチャートパズル</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=JetBrains+Mono:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 方眼紙の作図エリア（左）＋ブロック置き場（右／スマホでは下に固定） */
+:root {
+  --paper: #eef2f6;
+  --sheet: #ffffff;
+  --grid: #e1e8f0;
+  --rule: #cdd6e2;
+  --ink: #17223a;
+  --muted: #5b6782;
+  --line: #2a3552;
+  --accent: #1d55d4;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3ebff;
+  --hl-fill: #ffe46b;
+  --hl-stroke: #c78a00;
+  --ok: #16834a;
+  --ok-soft: #e1f5ea;
+  --ng: #cf3434;
+  --ng-soft: #fde8e8;
+  --f-term: #eceff5;
+  --f-proc: #e3edff;
+  --f-dec: #fff0c4;
+  --f-loop: #d8f1e2;
+  --stroke: #2a3552;
+  --slot-fill: rgba(29, 85, 212, 0.05);
+  --slot-armed: rgba(29, 85, 212, 0.14);
+  --display: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1320; --sheet: #141c2c; --grid: #1c2639; --rule: #2a3650;
+    --ink: #e7edf8; --muted: #9ba8c2; --line: #b9c5de;
+    --accent: #7aa2ff; --accent-ink: #0b1122; --accent-soft: #1d2b4f;
+    --hl-fill: #6b5400; --hl-stroke: #ffd447;
+    --ok: #4fd18b; --ok-soft: #11301f; --ng: #ff7272; --ng-soft: #3a1717;
+    --f-term: #252e41; --f-proc: #1b2b4c; --f-dec: #3b3215; --f-loop: #163a29;
+    --stroke: #b9c5de; --slot-fill: rgba(122, 162, 255, 0.06); --slot-armed: rgba(122, 162, 255, 0.18);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1320; --sheet: #141c2c; --grid: #1c2639; --rule: #2a3650;
+  --ink: #e7edf8; --muted: #9ba8c2; --line: #b9c5de;
+  --accent: #7aa2ff; --accent-ink: #0b1122; --accent-soft: #1d2b4f;
+  --hl-fill: #6b5400; --hl-stroke: #ffd447;
+  --ok: #4fd18b; --ok-soft: #11301f; --ng: #ff7272; --ng-soft: #3a1717;
+  --f-term: #252e41; --f-proc: #1b2b4c; --f-dec: #3b3215; --f-loop: #163a29;
+  --stroke: #b9c5de; --slot-fill: rgba(122, 162, 255, 0.06); --slot-armed: rgba(122, 162, 255, 0.18);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.7; }
+button { font: inherit; color: inherit; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+/* header */
+.top { background: var(--sheet); border-bottom: 1px solid var(--rule); }
+.top-in { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 24px; flex-wrap: wrap; padding-block: 18px 16px; }
+.eyebrow { display: block; font-size: 12px; letter-spacing: 0.12em; color: var(--muted); font-weight: 700; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(26px, 4.4vw, 38px); line-height: 1.15; margin: 2px 0 0; letter-spacing: 0.02em; }
+h1 .arrow { color: var(--accent); }
+.progress { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.progress b { font-family: var(--mono); color: var(--ink); font-size: 16px; }
+.pbar { width: 120px; height: 8px; border-radius: 4px; background: var(--grid); overflow: hidden; }
+.pbar i { display: block; height: 100%; background: var(--ok); width: 0; transition: width .3s; }
+
+/* category tabs */
+.cats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 18px; }
+.cat { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule); background: var(--sheet); border-radius: 10px; cursor: pointer; text-align: left; min-width: 0; }
+.cat svg { flex: none; }
+.cat .nm { font-weight: 700; font-size: 15px; line-height: 1.3; }
+.cat .ct { display: block; font-size: 12px; color: var(--muted); font-family: var(--mono); }
+.cat[aria-selected="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--accent-soft); }
+.cat:focus-visible, .chip:focus-visible, .blk:focus-visible, .btn:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.ico .s { fill: none; stroke: var(--ink); stroke-width: 1.4; }
+.ico .f { fill: var(--accent); }
+@media (max-width: 640px) {
+  .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cat:last-child { grid-column: span 2; }
+}
+
+.subbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 14px; }
+.cat-desc { margin: 0; color: var(--muted); font-size: 14px; flex: 1 1 320px; min-width: 0; }
+.probs { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { min-width: 40px; height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid var(--rule); background: var(--sheet); cursor: pointer; font-family: var(--mono); font-weight: 700; display: inline-flex; align-items: center; gap: 4px; justify-content: center; }
+.chip.on { background: var(--ink); color: var(--sheet); border-color: var(--ink); }
+.chip .done { color: var(--ok); font-size: 13px; }
+.chip.on .done { color: var(--ok); }
+
+/* legend */
+.legend { margin-top: 14px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 10px; }
+.legend summary { cursor: pointer; padding: 10px 14px; font-weight: 700; font-size: 14px; }
+.legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px 18px; padding: 4px 14px 14px; }
+.lg { display: flex; gap: 10px; align-items: flex-start; min-width: 0; }
+.lg svg { flex: none; }
+.lg b { display: block; font-size: 14px; }
+.lg span { font-size: 13px; color: var(--muted); line-height: 1.55; display: block; }
+.legend .note { padding: 0 14px 14px; margin: 0; font-size: 13px; color: var(--muted); }
+.legend .note code { font-family: var(--mono); color: var(--ink); background: var(--grid); padding: 1px 6px; border-radius: 4px; }
+
+/* main layout */
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 330px; gap: 18px; margin-top: 18px; padding-bottom: 40px; align-items: start; }
+.stage { min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.q { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 16px 18px; }
+.q-no { font-size: 12px; letter-spacing: 0.1em; font-weight: 700; color: var(--accent); }
+.q h2 { margin: 2px 0 6px; font-size: 21px; line-height: 1.4; text-wrap: balance; }
+.q p { margin: 0; max-width: 62ch; }
+.q .inputs { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.q .inputs code { font-family: var(--mono); color: var(--ink); }
+
+.chart {
+  border: 1px solid var(--rule); border-radius: 12px; overflow: auto;
+  background-color: var(--sheet);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 20px 20px; background-position: -1px -1px;
+  padding: 8px; text-align: center;
+}
+.chart svg { display: inline-block; height: auto; }
+
+/* svg parts */
+.sh rect, .sh polygon { stroke: var(--stroke); stroke-width: 1.6; }
+.sh-term rect { fill: var(--f-term); }
+.sh-proc rect { fill: var(--f-proc); }
+.sh-dec polygon { fill: var(--f-dec); }
+.sh-ls polygon, .sh-le polygon { fill: var(--f-loop); }
+.tx { fill: var(--ink); font-size: 14px; font-family: var(--body); font-weight: 500; }
+.ln { fill: none; stroke: var(--line); stroke-width: 1.6; stroke-linejoin: round; }
+.ah { fill: var(--line); }
+.yn { fill: var(--muted); font-size: 12px; font-weight: 700; font-family: var(--mono); }
+.slot { cursor: pointer; outline: none; }
+.slot-box { fill: var(--slot-fill); stroke: var(--accent); stroke-width: 1.6; stroke-dasharray: 6 5; }
+.slot-q { fill: var(--accent); font-size: 13px; font-family: var(--body); font-weight: 700; }
+.slot.armed .slot-box { fill: var(--slot-armed); animation: pulse 1.1s ease-in-out infinite; }
+.slot.over .slot-box, .slot.over .placed rect, .slot.over .placed polygon { stroke-width: 3.2; stroke: var(--accent); }
+.slot .hit { fill: transparent; stroke: none; }
+.slot:focus-visible .hit { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 3 3; }
+.slot:hover .slot-box { fill: var(--slot-armed); }
+.badge circle { fill: var(--accent); }
+.badge text { fill: var(--accent-ink); font-size: 12px; font-weight: 700; font-family: var(--mono); }
+.slot.ok .badge circle { fill: var(--ok); }
+.slot.ng .badge circle { fill: var(--ng); }
+.slot.ok .placed rect, .slot.ok .placed polygon { stroke: var(--ok); stroke-width: 2.6; }
+.slot.ng .placed rect, .slot.ng .placed polygon { stroke: var(--ng); stroke-width: 2.6; }
+.cur rect:not(.hit), .cur polygon { fill: var(--hl-fill) !important; stroke: var(--hl-stroke) !important; stroke-width: 3 !important; }
+@keyframes pulse { 50% { stroke-dashoffset: 11; } }
+@media (prefers-reduced-motion: reduce) { .slot.armed .slot-box { animation: none; } .pbar i { transition: none; } }
+
+/* feedback */
+.feedback:empty { display: none; }
+.feedback { border-radius: 12px; padding: 14px 16px; border: 1px solid var(--rule); background: var(--sheet); }
+.feedback.ok { background: var(--ok-soft); border-color: var(--ok); }
+.feedback.ng { background: var(--ng-soft); border-color: var(--ng); }
+.feedback.info { background: var(--accent-soft); border-color: var(--accent); }
+.feedback h3 { margin: 0 0 4px; font-size: 16px; }
+.feedback ul { margin: 4px 0 0; padding-left: 1.2em; }
+.feedback p { margin: 4px 0 0; max-width: 65ch; }
+.feedback .next { margin-top: 10px; }
+
+/* trace */
+.trace { background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 14px 16px; }
+.trace h3 { margin: 0; font-size: 16px; }
+.trace .lock { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.t-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.t-row label { font-size: 13px; color: var(--muted); }
+.t-row input { font-family: var(--mono); font-size: 14px; padding: 6px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--paper); color: var(--ink); width: 220px; max-width: 100%; }
+.t-note { margin-top: 12px; padding: 10px 12px; border-radius: 8px; background: var(--paper); border-left: 4px solid var(--hl-stroke); font-weight: 500; min-height: 48px; }
+.t-note .stepno { font-family: var(--mono); font-size: 12px; color: var(--muted); display: block; }
+.t-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; margin-top: 12px; }
+@media (max-width: 560px) { .t-grid { grid-template-columns: minmax(0, 1fr); } }
+.t-box h4 { margin: 0 0 6px; font-size: 12px; letter-spacing: 0.1em; color: var(--muted); }
+.vars { display: flex; flex-wrap: wrap; gap: 6px; }
+.var { font-family: var(--mono); font-size: 14px; border: 1px solid var(--rule); border-radius: 8px; padding: 4px 10px; background: var(--paper); font-variant-numeric: tabular-nums; }
+.var.chg { border-color: var(--hl-stroke); background: var(--hl-fill); }
+.console { font-family: var(--mono); font-size: 14px; background: var(--ink); color: var(--sheet); border-radius: 8px; padding: 8px 12px; min-height: 64px; max-height: 180px; overflow: auto; white-space: pre-wrap; }
+.console .empty { opacity: .6; font-family: var(--body); font-size: 13px; }
+
+/* tools */
+.tools { position: sticky; top: 16px; background: var(--sheet); border: 1px solid var(--rule); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.tools-head h3 { margin: 0; font-size: 16px; }
+.tools-head .tip { font-size: 12px; color: var(--muted); display: block; line-height: 1.5; }
+.palette { display: flex; flex-direction: column; gap: 8px; align-items: stretch; max-height: calc(100vh - 230px); overflow-y: auto; padding: 2px; }
+.palette .empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
+.blk { background: var(--paper); border: 1px solid var(--rule); border-radius: 10px; padding: 8px; cursor: grab; display: flex; justify-content: center; user-select: none; -webkit-user-select: none; touch-action: pan-x; flex: none; }
+.blk:hover { border-color: var(--accent); }
+.blk.sel { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.blk svg { display: block; pointer-events: none; }
+.ghost { position: fixed; left: 0; top: 0; pointer-events: none; z-index: 50; opacity: .92; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn { border: 1px solid var(--rule); background: var(--sheet); border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 700; font-size: 14px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); flex: 1 1 auto; }
+.btn[disabled] { opacity: .45; cursor: default; }
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .tools { position: sticky; top: auto; bottom: 0; border-radius: 12px 12px 0 0; margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)); box-shadow: 0 -6px 18px rgba(0,0,0,.12); z-index: 5; gap: 8px; }
+  .palette { flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none; padding-bottom: 6px; }
+  .blk svg { width: calc(var(--w) * 0.6); height: auto; }
+  .tools-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .layout { padding-bottom: 0; }
+  .stage { padding-bottom: 8px; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-in">
+    <div class="brand">
+      <span class="eyebrow">情報Ⅰ ・ プログラムの基本構造</span>
+      <h1>フローチャート<span class="arrow">↓</span>パズル</h1>
+    </div>
+    <div class="progress"><span><b id="pNum">0</b> / <span id="pAll">0</span> 問クリア</span><span class="pbar"><i id="pBar"></i></span></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <nav class="cats" id="cats" role="tablist" aria-label="構造の種類"></nav>
+  <div class="subbar">
+    <p class="cat-desc" id="catDesc"></p>
+    <div class="probs" id="probs" aria-label="問題"></div>
+  </div>
+
+  <details class="legend" id="legend">
+    <summary>フローチャートの記号（クリックで表示）</summary>
+    <div class="legend-grid" id="legendGrid"></div>
+    <p class="note"><code>a ← 3</code> は「変数 a に 3 を入れる（代入する）」という意味です。<code>≧</code> は「以上」、<code>≦</code> は「以下」です。</p>
+  </details>
+
+  <div class="layout">
+    <section class="stage">
+      <div class="q">
+        <div class="q-no" id="qNo"></div>
+        <h2 id="qTitle"></h2>
+        <p id="qText"></p>
+        <div class="inputs" id="qInputs"></div>
+      </div>
+      <div class="chart" id="chartBox"><svg id="chart" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="フローチャート"></svg></div>
+      <div class="feedback" id="fb" aria-live="polite"></div>
+      <section class="trace" id="trace"></section>
+    </section>
+
+    <aside class="tools" aria-label="ブロック置き場">
+      <div class="tools-head">
+        <h3>ブロック</h3>
+        <span class="tip">ブロックを選んで「ここに置く」をタップ。ドラッグしても置けます。置いたブロックをタップすると戻せます。</span>
+      </div>
+      <div class="palette" id="palette"></div>
+      <div class="actions">
+        <button class="btn primary" id="btnCheck" type="button">答え合わせ</button>
+        <button class="btn" id="btnHint" type="button">ヒント</button>
+        <button class="btn" id="btnReset" type="button">やり直す</button>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<script>
+/* ---------- 寸法 ---------- */
+const S = { W: 220, H: 46, LW: 280, LH: 54, DW: 250, DH: 80, TW: 130, TH: 40, V: 34, G: 44, M: 24, LINE: 18 };
+const CIRC = '⓪①②③④⑤⑥⑦⑧⑨⑩';
+const SHAPE_NAME = { term: '端子', proc: '処理', dec: '判断', ls: 'ループ端（始め）', le: 'ループ端（終わり）' };
+
+/* ---------- ノードを作る関数 ---------- */
+const T = text => ({ t: 'term', text });
+const P = (text, run) => ({ t: 'proc', text, run });
+const D = (text, test) => ({ t: 'dec', text, test });
+const LS = (text, spec) => ({ t: 'ls', text, ...spec });
+const LE = text => ({ t: 'le', text });
+const IF = (cond, yes, no = []) => ({ t: 'if', cond, yes, no });
+const LOOP = (head, body, tail) => ({ t: 'loop', head, body, tail });
+const WHILE = (cond, body) => ({ t: 'while', cond, body });
+const $ = node => (node.slot = true, node);           // ブロックをはめる場所
+const inp = k => (v, io) => { v[k] = io.read(); return `${k} に ${v[k]} を入力する`; };
+const show = k => (v, io) => { io.print(v[k] === undefined ? '（値なし）' : v[k]); return `${k} の値 ${v[k]} を表示する`; };
+const say = s => (v, io) => { io.print(s); return `「${s}」と表示する`; };
+const loop1 = (to, by = 1) => ({ v: 'i', from: 1, to, by });
+const loopText = (to, by = 1) => `ループ1\ni を 1 から ${to} まで ${by} ずつ増やす`;
+
+/* ---------- 問題 ---------- */
+const CATS = [
+  { id: 'seq', name: '順次構造', desc: '上から順番に、1つずつ処理を実行する構造です。処理の「順番」が大切です。' },
+  { id: 'branch', name: '分岐構造', desc: '条件が成り立つ（Yes）か成り立たない（No）かで、実行する処理を選ぶ構造です。' },
+  { id: 'loop', name: '反復構造', desc: '同じ処理を何回も繰り返す構造です。ループ端ではさんだ部分や、判断から戻る矢印の部分が繰り返されます。' },
+  { id: 'mix', name: '組み合わせ', desc: '順次・分岐・反復の3つを組み合わせると、どんな手順でも表せます。' },
+  { id: 'life', name: '日常生活', desc: '毎日の行動も、順次・分岐・反復を組み合わせたアルゴリズムとして表せます。身近な手順をフローチャートにしてみよう。' },
+];
+const HOT = ['カレー', 'ごはん', 'ぎょうざ', 'シチュー'];
+
+const PROBLEMS = [
+  { id: 'seq1', cat: 'seq', title: '長方形の面積',
+    text: '縦の長さ a と横の長さ b を入力して、長方形の面積 s を求めて表示するフローチャートを完成させよう。',
+    vars: ['a', 'b', 's'], inputs: [4, 6],
+    flow: [T('開始'), P('a を入力する', inp('a')), P('b を入力する', inp('b')),
+      $(P('s ← a × b', v => { v.s = v.a * v.b; })), $(P('s を表示する', show('s'))), T('終了')],
+    decoys: [['proc', 's ← a + b'], ['dec', 's ← a × b'], ['proc', 'a を表示する']],
+    hint: '面積は「縦 × 横」です。計算や入力・表示は、どの記号で書くのだったかな？',
+    explain: '計算・代入・入力・表示などの処理は長方形の「処理」の記号で書きます。順次構造では、上から順に1つずつ実行されます。' },
+
+  { id: 'seq2', cat: 'seq', title: '消費税込みの値段',
+    text: '品物の値段 p を入力して、消費税10%を含めた値段 t を表示しよう。3つのブロックを正しい順番に並べてね。',
+    vars: ['p', 't'], inputs: [500],
+    flow: [T('開始'), $(P('p を入力する', inp('p'))), $(P('t ← p × 1.1', v => { v.t = Math.round(v.p * 1.1 * 100) / 100; })),
+      $(P('t を表示する', show('t'))), T('終了')],
+    decoys: [['proc', 't ← p + 1.1'], ['term', 't を表示する']],
+    hint: '「入力 → 計算 → 表示」の順番です。t に値が入る前に表示しても意味がありません。',
+    explain: '順次構造では処理の順番がとても大切です。計算より先に「t を表示する」を置くと、まだ値が決まっていない t を表示しようとしてしまいます。' },
+
+  { id: 'seq3', cat: 'seq', title: '2つの変数の値の交換',
+    text: '変数 a と b の値を入れかえよう。いったん値を入れておく変数 tmp を使います。',
+    vars: ['a', 'b', 'tmp'],
+    flow: [T('開始'), P('a ← 3', v => { v.a = 3; }), P('b ← 5', v => { v.b = 5; }),
+      $(P('tmp ← a', v => { v.tmp = v.a; })), $(P('a ← b', v => { v.a = v.b; })), $(P('b ← tmp', v => { v.b = v.tmp; })),
+      P('a と b を表示する', (v, io) => { io.print(`a = ${v.a}, b = ${v.b}`); return 'a と b の値を表示する'; }), T('終了')],
+    decoys: [['proc', 'a ← tmp'], ['proc', 'b ← a'], ['dec', 'a ← b']],
+    hint: 'いきなり a ← b とすると、a に入っていた 3 が消えてしまいます。先に a の値を tmp に避難させよう。',
+    explain: '代入すると、変数に入っていた前の値は上書きされて消えます。だから値の交換には、一時的に値を入れておく変数（tmp）が必要です。' },
+
+  { id: 'br1', cat: 'branch', title: '合格かどうかの判定',
+    text: 'テストの点数 x を入力して、60点以上なら「合格」、そうでなければ「不合格」と表示しよう。',
+    vars: ['x'], inputs: [72],
+    flow: [T('開始'), P('x を入力する', inp('x')),
+      IF($(D('x ≧ 60', v => v.x >= 60)), [$(P('「合格」と表示する', say('合格')))], [$(P('「不合格」と表示する', say('不合格')))]),
+      T('終了')],
+    decoys: [['proc', 'x ≧ 60'], ['dec', 'x ≦ 60']],
+    hint: '条件で道を分けるときは、ひし形の「判断」の記号を使います。下に進む道が Yes、右に進む道が No です。',
+    explain: '分岐構造では、判断の記号に書いた条件が成り立つ（Yes）か成り立たない（No）かで、どちらか一方の処理だけが実行されます。入力値を変えて、No の道も確かめてみよう。' },
+
+  { id: 'br2', cat: 'branch', title: '偶数か奇数か',
+    text: '整数 n を入力して、偶数なら「偶数」、奇数なら「奇数」と表示しよう。',
+    vars: ['n'], inputs: [7],
+    flow: [T('開始'), P('n を入力する', inp('n')),
+      IF($(D('n を 2 で割った\n余りが 0', v => v.n % 2 === 0)), [$(P('「偶数」と表示する', say('偶数')))], [$(P('「奇数」と表示する', say('奇数')))]),
+      T('終了')],
+    decoys: [['dec', 'n > 2'], ['proc', 'n ← n ÷ 2'], ['proc', 'n を 2 で割った\n余りが 0']],
+    hint: '2 で割り切れる数が偶数です。「割り切れる」は「割った余りが 0」と言いかえられます。',
+    explain: '「2 で割った余りが 0」かどうかで偶数・奇数を判断できます。プログラムでは余りを求める演算（% など）をよく使います。' },
+
+  { id: 'br3', cat: 'branch', title: '絶対値を求める',
+    text: '数 x を入力して、その絶対値を表示しよう。x がマイナスのときだけ符号を反対にします。',
+    vars: ['x'], inputs: [-8],
+    flow: [T('開始'), P('x を入力する', inp('x')),
+      IF($(D('x < 0', v => v.x < 0)), [$(P('x ← −x', v => { v.x = -v.x; }))], []),
+      P('x を表示する', show('x')), T('終了')],
+    decoys: [['dec', 'x > 0'], ['proc', 'x ← 0'], ['proc', 'x ← x × x']],
+    hint: 'No のときは何もしないで先に進みます。Yes のときだけ行う処理を考えよう。',
+    explain: '条件が成り立たないときに何もしない「片方だけの分岐」もよく使います。x が 0 以上のときは、そのまま表示されます。' },
+
+  { id: 'lp1', cat: 'loop', title: 'あいさつを5回',
+    text: '「こんにちは」を5回表示しよう。繰り返す範囲をループ端の記号ではさみます。',
+    vars: ['i'],
+    flow: [T('開始'),
+      LOOP($(LS(loopText(5), loop1(5))), [$(P('「こんにちは」と表示する', say('こんにちは')))], $(LE('ループ1'))),
+      T('終了')],
+    decoys: [['le', loopText(5)], ['ls', 'ループ1'], ['proc', 'i ← i + 1']],
+    hint: 'ループ端は、上が「始め」（下の角が四角い）、下が「終わり」（下の角が欠けている）です。始めと終わりには同じ名前（ループ1）を書きます。',
+    explain: 'ループ端ではさんだ部分が繰り返されます。i は 1, 2, 3, 4, 5 と自動で増えるので、「i ← i + 1」を自分で書く必要はありません。' },
+
+  { id: 'lp2', cat: 'loop', title: '1から10までの合計',
+    text: '1 + 2 + 3 + … + 10 の合計を求めて表示しよう。合計は変数 sum に入れていきます。',
+    vars: ['i', 'sum'],
+    flow: [T('開始'), $(P('sum ← 0', v => { v.sum = 0; })),
+      LOOP($(LS(loopText(10), loop1(10))), [$(P('sum ← sum + i', v => { v.sum += v.i; }))], LE('ループ1')),
+      P('sum を表示する', show('sum')), T('終了')],
+    decoys: [['proc', 'sum ← sum + 1'], ['proc', 'sum ← i'], ['ls', loopText(10, 2)]],
+    hint: 'まず sum を 0 にしておき、繰り返しの中で sum に i を足していきます。',
+    explain: '「sum ← sum + i」は、いまの sum に i を足して sum に入れ直すという意味です。繰り返す前に sum ← 0 で初期化しておくのがポイントです。' },
+
+  { id: 'lp3', cat: 'loop', title: '目標金額まで貯金',
+    text: '毎週300円ずつ貯金します。貯金額 m が1000円以上になるまでに何週かかるか（w）を求めよう。',
+    vars: ['m', 'w'],
+    flow: [T('開始'), P('m ← 0', v => { v.m = 0; }), P('w ← 0', v => { v.w = 0; }),
+      WHILE($(D('m < 1000', v => v.m < 1000)), [$(P('m ← m + 300', v => { v.m += 300; })), P('w ← w + 1', v => { v.w += 1; })]),
+      P('w を表示する', show('w')), T('終了')],
+    decoys: [['dec', 'm ≧ 1000'], ['proc', 'm ← 300'], ['proc', 'w ← w + 300']],
+    hint: 'まだ目標に届いていない間（Yes）は貯金を続けます。届いたら（No）ループを抜けます。',
+    explain: '判断の記号と、上へ戻る矢印を使っても繰り返しを表せます。条件を先に調べるので、最初から条件が成り立たなければ1回も繰り返しません。' },
+
+  { id: 'mx1', cat: 'mix', title: '偶数だけの合計',
+    text: '1から10までの整数のうち、偶数だけを合計して表示しよう。（反復の中に分岐が入ります）',
+    vars: ['i', 'sum'],
+    flow: [T('開始'), P('sum ← 0', v => { v.sum = 0; }),
+      LOOP(LS(loopText(10), loop1(10)), [
+        IF($(D('i を 2 で割った\n余りが 0', v => v.i % 2 === 0)), [$(P('sum ← sum + i', v => { v.sum += v.i; }))], [])
+      ], $(LE('ループ1'))),
+      P('sum を表示する', show('sum')), T('終了')],
+    decoys: [['dec', 'i を 2 で割った\n余りが 1'], ['proc', 'sum ← sum + 2'], ['ls', 'ループ1']],
+    hint: 'i が 1 から 10 まで変わるたびに「i は偶数？」と判断し、Yes のときだけ sum に足します。',
+    explain: '反復の中に分岐を入れると、「繰り返しながら、条件に合うものだけ処理する」ことができます。答えは 2+4+6+8+10 = 30 です。' },
+
+  { id: 'mx2', cat: 'mix', title: '合格者の人数',
+    text: '5人分の点数を1人ずつ入力し、60点以上の人数 c を数えて表示しよう。',
+    vars: ['i', 'x', 'c'], inputs: [72, 45, 88, 59, 60],
+    flow: [T('開始'), $(P('c ← 0', v => { v.c = 0; })),
+      LOOP(LS(loopText(5), loop1(5)), [
+        $(P('x を入力する', inp('x'))),
+        IF($(D('x ≧ 60', v => v.x >= 60)), [$(P('c ← c + 1', v => { v.c += 1; }))], [])
+      ], LE('ループ1')),
+      P('c を表示する', show('c')), T('終了')],
+    decoys: [['proc', 'c ← c + x'], ['dec', 'x < 60'], ['proc', 'c ← 1']],
+    hint: '人数を数える変数 c は最初に 0 にします。合格の人がいたら c を 1 増やします。',
+    explain: '「c ← c + 1」のように 1 ずつ増やして数える変数をカウンタと呼びます。入力値を変えて、人数が変わるか確かめてみよう。' },
+
+  { id: 'mx3', cat: 'mix', title: 'いちばん大きい数',
+    text: '5つの数を1つずつ入力して、その中でいちばん大きい数 max を表示しよう。',
+    vars: ['i', 'x', 'max'], inputs: [34, 81, 57, 90, 12],
+    flow: [T('開始'), P('max ← 0', v => { v.max = 0; }),
+      LOOP($(LS(loopText(5), loop1(5))), [
+        P('x を入力する', inp('x')),
+        IF($(D('x > max', v => v.x > v.max)), [$(P('max ← x', v => { v.max = v.x; }))], [])
+      ], $(LE('ループ1'))),
+      P('max を表示する', show('max')), T('終了')],
+    decoys: [['proc', 'x ← max'], ['dec', 'x < max'], ['ls', loopText(4)], ['le', 'ループ2']],
+    hint: '入力した x が、いまの max より大きいときだけ、max を x に入れかえます。',
+    explain: '「今までで一番大きい値」を max に覚えておき、それより大きい数が来たら更新します。最大値を求める代表的なアルゴリズムです。' },
+
+  { id: 'mx4', cat: 'mix', title: '3の倍数は★（チャレンジ）',
+    text: '1から12までの数を順に表示します。ただし3の倍数のときは、数の代わりに「★」を表示しよう。',
+    vars: ['i'],
+    flow: [T('開始'),
+      LOOP($(LS(loopText(12), loop1(12))), [
+        IF($(D('i を 3 で割った\n余りが 0', v => v.i % 3 === 0)), [$(P('「★」と表示する', say('★')))], [$(P('i を表示する', show('i')))])
+      ], $(LE('ループ1'))),
+      T('終了')],
+    decoys: [['dec', 'i を 3 で割った\n余りが 1'], ['proc', 'i ← i + 3'], ['le', loopText(12)]],
+    hint: '繰り返しの中で、i が 3 の倍数かどうかを判断します。Yes なら★、No なら i をそのまま表示します。',
+    explain: '順次・分岐・反復の3つがすべて入ったフローチャートです。どんなに複雑なプログラムも、この3つの組み合わせで作ることができます。' },
+
+  { id: 'life1', cat: 'life', title: 'おなかがすいたとき',
+    text: 'おなかがすいたので冷蔵庫へ行き、食べ物を探して食べるまでの手順です。食べたい物がなければコンビニで買い、温める必要がある物は電子レンジで温めます。',
+    vars: ['食べ物'], inputs: ['カレー'], inputLabel: '冷蔵庫で見つけた物（なければ「なし」）',
+    flow: [T('開始'), P('冷蔵庫を開ける'), P('食べ物を探す', (v, io) => { v.食べ物 = io.read(); return v.食べ物 === 'なし' ? '探したけれど、食べたい物が見つからない' : `「${v.食べ物}」を見つけた`; }),
+      IF($(D('食べたい物がある', v => v.食べ物 !== 'なし')),
+        [$(P('食べ物を取り出す')), IF($(D('温める必要がある', v => HOT.includes(v.食べ物))), [$(P('電子レンジで温める'))], [])],
+        [$(P('コンビニで買ってくる', v => { v.食べ物 = 'パン'; return 'コンビニでパンを買ってくる'; }))]),
+      P('食べる', (v, io) => { io.print(`${v.食べ物}を食べた`); return `${v.食べ物}を食べる`; }), T('終了')],
+    decoys: [['proc', '食べたい物がある'], ['dec', '電子レンジで温める'], ['dec', '冷蔵庫が開いている']],
+    hint: '「〜がある？」「〜が必要？」のように、Yes か No で答えられる問いが判断の記号に入ります。行動は処理の記号です。',
+    explain: '分岐の中にさらに分岐が入っています（入れ子）。「なし」や「ヨーグルト」を入力して、通る道が変わるか確かめてみよう。' },
+
+  { id: 'life2', cat: 'life', title: '天気に合わせた登校',
+    text: '朝、天気予報を見て登校方法を決めます。雨でなければ徒歩。雨なら家族に車で送ってもらえるか聞き、送ってもらえなければバスで登校します。',
+    vars: ['天気', '送迎'], inputs: ['雨', 'できない'], inputLabel: '天気、家族の送迎（できる／できない）',
+    flow: [T('開始'), P('天気予報を見る', (v, io) => { v.天気 = io.read(); return `天気予報は「${v.天気}」`; }),
+      IF($(D('雨が降る', v => v.天気 === '雨')),
+        [$(P('家族に送れるか聞く', (v, io) => { v.送迎 = io.read(); return `家族の答えは「${v.送迎}」`; })),
+          IF($(D('車で送ってもらえる', v => v.送迎 === 'できる')), [P('車で登校する', say('車で登校した'))], [$(P('バスで登校する', say('バスで登校した')))])],
+        [$(P('徒歩で登校する', say('徒歩で登校した')))]),
+      P('学校に着く'), T('終了')],
+    decoys: [['dec', '晴れる'], ['proc', '雨が降る'], ['dec', '徒歩で登校する']],
+    hint: '最初の判断で「雨かどうか」、雨のときだけ次の判断で「車で送ってもらえるか」を調べます。',
+    explain: '分岐を組み合わせると、3つ以上の選択肢（徒歩・車・バス）から1つを選べます。天気を「晴れ」にすると、家族に聞く処理は実行されません。' },
+
+  { id: 'life3', cat: 'life', title: '自動販売機で飲み物を買う',
+    text: '130円の飲み物を買います。投入金額が値段に届くまでコインを入れ続け、ボタンを押して買います。多く入れたときはおつりを受け取ります。',
+    vars: ['価格', 'コイン', '投入金額'], inputs: [100, 10, 10, 50], inputLabel: '入れるコイン（円）',
+    flow: [T('開始'), P('飲み物を選ぶ（130円）', v => { v.価格 = 130; return '130円の飲み物に決める'; }), P('投入金額 ← 0', v => { v.投入金額 = 0; }),
+      WHILE($(D('投入金額 < 価格', v => v.投入金額 < v.価格)), [
+        $(P('コインを入れる', (v, io) => { v.コイン = io.read(); return `${v.コイン}円玉を入れる`; })),
+        $(P('投入金額 ← 投入金額 + コイン', v => { v.投入金額 += v.コイン; return `投入金額が ${v.投入金額}円 になる`; }))]),
+      $(P('ボタンを押す', (v, io) => { io.print('ガコン！（飲み物が出た）'); return 'ボタンを押す'; })),
+      IF($(D('投入金額 > 価格', v => v.投入金額 > v.価格)), [P('おつりを受け取る', (v, io) => { io.print(`おつり ${v.投入金額 - v.価格}円`); return `おつり ${v.投入金額 - v.価格}円を受け取る`; })], []),
+      P('飲み物を取り出す'), T('終了')],
+    decoys: [['dec', '投入金額 ≧ 価格'], ['proc', '投入金額 ← コイン'], ['ls', 'ループ1\nコインを 3 回入れる']],
+    hint: '何枚入れるかは決まっていないので、「まだ足りない間（Yes）はコインを入れる」という判断で繰り返します。',
+    explain: '回数が決まっていない繰り返しは、条件で終わりを決めます。コインの組み合わせを変えると、繰り返す回数やおつりが変わります。' },
+
+  { id: 'life4', cat: 'life', title: 'カップラーメンを作る',
+    text: 'ふたを開けてかやくを入れ、お湯を注いで3分待ってから食べます。「1分待つ」を3回繰り返して表そう。',
+    vars: ['回'],
+    flow: [T('開始'), P('ふたを半分あける'), $(P('かやくを入れる')), $(P('お湯を線まで注ぐ')),
+      LOOP($(LS('ループ1\n3 回くり返す', { v: '回', from: 1, to: 3, by: 1 })), [$(P('1分待つ', (v, io) => { io.print(`${v.回}分たった`); return `1分待つ（${v.回}分目）`; }))], $(LE('ループ1'))),
+      $(P('ふたを取って食べる', say('いただきます！'))), T('終了')],
+    decoys: [['dec', '1分待つ'], ['le', 'ループ1\n3 回くり返す'], ['proc', '回 ← 回 + 1']],
+    hint: 'お湯より先にかやくを入れます。待つのは食べる前で、ループ端ではさんだ部分が3回繰り返されます。',
+    explain: '「1分待つ」を3回書く代わりに、ループ端ではさむと短く書けます。手順の順番（順次）も大切です。' },
+
+  { id: 'life5', cat: 'life', title: '横断歩道をわたる',
+    text: '横断歩道で信号を見て、赤の間は待ちます。青になったら左右を確認してからわたります。',
+    vars: ['信号'], inputs: ['赤', '赤', '青'], inputLabel: '見るたびの信号の色（赤／青）',
+    flow: [T('開始'), P('横断歩道の前に立つ'), P('信号を見る', (v, io) => { v.信号 = io.read(); return `信号は「${v.信号}」`; }),
+      WHILE($(D('信号が赤', v => v.信号 === '赤')), [$(P('少し待つ')), P('もう一度信号を見る', (v, io) => { v.信号 = io.read(); return `信号は「${v.信号}」`; })]),
+      $(P('左右を確認する')), $(P('横断歩道をわたる', say('無事にわたった'))), T('終了')],
+    decoys: [['dec', '信号が青'], ['proc', '走ってわたる'], ['dec', '少し待つ']],
+    hint: '信号が赤である間（Yes）は待って見直すことを繰り返します。わたる前にすることも忘れずに。',
+    explain: '最初から青なら1回も待たずに進みます。これが「前判定」の繰り返しです。入力を「青」だけにして確かめてみよう。' },
+];
+
+/* ---------- 準備 ---------- */
+PROBLEMS.forEach(p => {
+  p.leaves = []; p.slots = []; let k = 0;
+  const leaf = n => { n.nid = 'n' + (k++); p.leaves.push(n); if (n.slot) { p.slots.push(n); n.no = p.slots.length; } };
+  const walk = list => list.forEach(n => {
+    if (n.t === 'loop') { leaf(n.head); walk(n.body); leaf(n.tail); }
+    else if (n.t === 'if') { leaf(n.cond); walk(n.yes); walk(n.no); }
+    else if (n.t === 'while') { leaf(n.cond); walk(n.body); }
+    else leaf(n);
+  });
+  walk(p.flow);
+});
+const byId = Object.fromEntries(PROBLEMS.map(p => [p.id, p]));
+
+let progress = new Set();
+try { progress = new Set(JSON.parse(localStorage.getItem('fc-progress') || '[]')); } catch (e) { }
+const saveProgress = () => { try { localStorage.setItem('fc-progress', JSON.stringify([...progress])); } catch (e) { } };
+
+const state = { cat: 'seq', pid: 'seq1', blocks: {}, order: [], placed: {}, marks: {}, sel: null, solved: false, hint: false };
+let trace = null;
+
+/* ---------- SVG ヘルパー ---------- */
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const flat = s => s.replace(/\n/g, '');
+function size(s, text) {
+  const n = String(text || '').split('\n').length;
+  switch (s) {
+    case 'term': return [S.TW, S.TH];
+    case 'dec': return [S.DW, S.DH];
+    case 'ls': case 'le': return [S.LW, S.LH + Math.max(0, n - 2) * S.LINE];
+    default: return [S.W, S.H + (n - 1) * S.LINE];
+  }
+}
+function txt(cx, cy, text, cls = 'tx') {
+  const L = String(text).split('\n'); const y0 = cy - (L.length - 1) * S.LINE / 2;
+  return `<text class="${cls}" text-anchor="middle">${L.map((l, i) => `<tspan x="${cx}" y="${y0 + i * S.LINE}" dominant-baseline="central">${esc(l)}</tspan>`).join('')}</text>`;
+}
+function shape(s, cx, y, w, h, text, cls = '') {
+  const x0 = cx - w / 2, x1 = cx + w / 2, y1 = y + h, c = 14; let g;
+  if (s === 'term') g = `<rect x="${x0}" y="${y}" width="${w}" height="${h}" rx="${h / 2}"/>`;
+  else if (s === 'proc') g = `<rect x="${x0}" y="${y}" width="${w}" height="${h}" rx="2"/>`;
+  else if (s === 'dec') g = `<polygon points="${cx},${y} ${x1},${y + h / 2} ${cx},${y1} ${x0},${y + h / 2}"/>`;
+  else if (s === 'ls') g = `<polygon points="${x0 + c},${y} ${x1 - c},${y} ${x1},${y + c} ${x1},${y1} ${x0},${y1} ${x0},${y + c}"/>`;
+  else g = `<polygon points="${x0},${y} ${x1},${y} ${x1},${y1 - c} ${x1 - c},${y1} ${x0 + c},${y1} ${x0},${y1 - c}"/>`;
+  return `<g class="sh sh-${s} ${cls}">${g}${txt(cx, y + h / 2, text)}</g>`;
+}
+function shapeSvg(s, text, scale = 1) {
+  const [w, h] = size(s, text); const W = w + 4, H = h + 4;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${Math.round(W * scale)}" height="${Math.round(H * scale)}" style="--w:${W}px" aria-hidden="true">${shape(s, W / 2, 2, w, h, text)}</svg>`;
+}
+
+/* ---------- レイアウト（大きさを測る） ---------- */
+function mSeq(seq) {
+  let l = 0, r = 0, h = 0;
+  seq.forEach((n, i) => { const m = mNode(n); l = Math.max(l, m.l); r = Math.max(r, m.r); h += m.h + (i ? S.V : 0); });
+  return { l, r, h };
+}
+function mNode(n) {
+  if (n.t === 'loop') {
+    const b = mSeq(n.body), hw = S.LW / 2 + 30;
+    return { l: Math.max(hw, b.l), r: Math.max(S.LW / 2, b.r), h: S.LH * 2 + (n.body.length ? b.h + 2 * S.V : S.V) };
+  }
+  if (n.t === 'if') {
+    const y = mSeq(n.yes), no = mSeq(n.no);
+    const dx = n.no.length ? Math.max(S.DW / 2 + 30, y.r + S.G + no.l) : Math.max(S.DW / 2 + 30, y.r + S.G);
+    return { l: Math.max(S.DW / 2 + 30, y.l), r: dx + (n.no.length ? no.r : 10), h: S.DH + S.V + Math.max(y.h, no.h) + S.V * 0.7, dx };
+  }
+  if (n.t === 'while') {
+    const b = mSeq(n.body);
+    const back = Math.max(S.DW / 2 + 30, b.l) + 22, dx = Math.max(S.DW / 2 + 30, b.r + S.G);
+    return { l: back + 8, r: dx + 8, h: S.DH + S.V + b.h + S.V, back, dx };
+  }
+  const [w, h] = size(n.t, n.text);
+  return { l: w / 2 + (n.slot ? 30 : 0), r: w / 2, h };
+}
+
+/* ---------- 描画 ---------- */
+let out = [];
+const line = (pts, arrow) => out.push(`<path class="ln" d="M${pts.map(p => p.join(' ')).join(' L')}"${arrow ? ' marker-end="url(#ah)"' : ''}/>`);
+const yn = (x, y, t, anchor = 'start') => out.push(`<text class="yn" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`);
+
+function drawSeq(seq, cx, y) {
+  let cy = y;
+  seq.forEach((n, i) => { if (i) { line([[cx, cy], [cx, cy + S.V]], true); cy += S.V; } cy = drawNode(n, cx, cy); });
+  return cy;
+}
+function drawNode(n, cx, y) {
+  if (n.t === 'loop') {
+    let b = drawLeaf(n.head, cx, y);
+    if (n.body.length) { line([[cx, b], [cx, b + S.V]], true); b = drawSeq(n.body, cx, b + S.V); }
+    line([[cx, b], [cx, b + S.V]], true);
+    return drawLeaf(n.tail, cx, b + S.V);
+  }
+  if (n.t === 'if') {
+    const mm = mNode(n), ym = mSeq(n.yes), nm = mSeq(n.no);
+    const bot = drawLeaf(n.cond, cx, y), mid = y + S.DH / 2, nx = cx + mm.dx;
+    const mergeY = bot + S.V + Math.max(ym.h, nm.h) + S.V * 0.7;
+    let yb = bot;
+    if (n.yes.length) { line([[cx, bot], [cx, bot + S.V]], true); yb = drawSeq(n.yes, cx, bot + S.V); }
+    line([[cx, yb], [cx, mergeY]]);
+    if (n.no.length) {
+      line([[cx + S.DW / 2, mid], [nx, mid], [nx, bot + S.V]], true);
+      const nb = drawSeq(n.no, nx, bot + S.V);
+      line([[nx, nb], [nx, mergeY], [cx + 1, mergeY]], true);
+    } else line([[cx + S.DW / 2, mid], [nx, mid], [nx, mergeY], [cx + 1, mergeY]], true);
+    yn(cx + 8, bot + 16, 'Yes'); yn(cx + S.DW / 2 + 8, mid - 8, 'No');
+    return mergeY;
+  }
+  if (n.t === 'while') {
+    const mm = mNode(n);
+    const bot = drawLeaf(n.cond, cx, y), mid = y + S.DH / 2;
+    line([[cx, bot], [cx, bot + S.V]], true);
+    const bb = drawSeq(n.body, cx, bot + S.V);
+    line([[cx, bb], [cx, bb + S.V * 0.5], [cx - mm.back, bb + S.V * 0.5], [cx - mm.back, y - S.V * 0.5], [cx - 1, y - S.V * 0.5]], true);
+    line([[cx + S.DW / 2, mid], [cx + mm.dx, mid], [cx + mm.dx, bb + S.V], [cx + 1, bb + S.V]], true);
+    yn(cx + 8, bot + 16, 'Yes'); yn(cx + S.DW / 2 + 8, mid - 8, 'No');
+    return bb + S.V;
+  }
+  return drawLeaf(n, cx, y);
+}
+function drawLeaf(n, cx, y) {
+  const [w, h] = size(n.t, n.text);
+  if (!n.slot) { out.push(`<g data-nid="${n.nid}">${shape(n.t, cx, y, w, h, n.text)}</g>`); return y + h; }
+  const bid = state.placed[n.nid], b = bid && state.blocks[bid];
+  const cls = ['slot', state.sel ? 'armed' : '', state.marks[n.nid] || ''].join(' ');
+  const label = b ? `${CIRC[n.no]} ${SHAPE_NAME[b.s]}「${flat(b.text)}」（タップで戻す）` : `${CIRC[n.no]} 空いている場所`;
+  out.push(`<g class="${cls}" data-slot="${n.nid}" data-nid="${n.nid}" tabindex="0" role="button" aria-label="${esc(label)}">`);
+  if (b) {
+    const [w2, h2] = size(b.s, b.text);
+    out.push(shape(b.s, cx, y + (h - h2) / 2, w2, h2, b.text, 'placed'));
+  } else {
+    out.push(`<rect class="slot-box" x="${cx - w / 2}" y="${y}" width="${w}" height="${h}" rx="10"/>`);
+    out.push(txt(cx, y + h / 2, 'ここに置く', 'slot-q'));
+  }
+  out.push(`<rect class="hit" x="${cx - w / 2 - 4}" y="${y - 4}" width="${w + 8}" height="${h + 8}" rx="10"/>`);
+  out.push(`<g class="badge"><circle cx="${cx - w / 2 - 18}" cy="${y + h / 2}" r="11"/><text x="${cx - w / 2 - 18}" y="${y + h / 2}" text-anchor="middle" dominant-baseline="central">${n.no}</text></g>`);
+  out.push('</g>');
+  return y + h;
+}
+
+const chart = document.getElementById('chart');
+function renderChart() {
+  const p = byId[state.pid]; const m = mSeq(p.flow);
+  const W = Math.ceil(m.l + m.r + S.M * 2), H = Math.ceil(m.h + S.M * 2);
+  out = [`<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>`];
+  drawSeq(p.flow, S.M + m.l, S.M);
+  chart.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  chart.setAttribute('width', W);
+  chart.style.width = '100%';
+  chart.style.maxWidth = W + 'px';
+  chart.style.minWidth = Math.round(W * 0.72) + 'px';
+  chart.innerHTML = out.join('');
+  applyHighlight();
+}
+
+/* ---------- ナビ ---------- */
+const ICONS = {
+  seq: '<rect class="s" x="9" y="2" width="14" height="6"/><rect class="s" x="9" y="13" width="14" height="6"/><rect class="s f" x="9" y="24" width="14" height="6"/><path class="s" d="M16 8v5M16 19v5"/>',
+  branch: '<path class="s f" d="M16 2 L24 9 L16 16 L8 9 Z"/><path class="s" d="M16 16v6M24 9h5v13M16 22h13"/><rect class="s" x="10" y="22" width="12" height="7"/>',
+  loop: '<path class="s f" d="M11 2h10l3 3v5H8V5z"/><rect class="s" x="8" y="13" width="16" height="6"/><path class="s" d="M8 22h16v5l-3 3H11l-3-3z"/><path class="s" d="M16 10v3M16 19v3"/>',
+  life: '<circle class="s" cx="16" cy="9" r="5"/><path class="s" d="M7 30v-6a9 6 0 0 1 18 0v6"/><path class="s f" d="M14 22 L18 22 L18 30 L14 30 Z"/>',
+  mix: '<path class="s" d="M11 1h10l3 3v4H8V4z"/><path class="s f" d="M16 11 L22 16 L16 21 L10 16 Z"/><path class="s" d="M8 24h16v4l-3 3H11l-3-3z"/><path class="s" d="M16 8v3M16 21v3"/>',
+};
+function renderNav() {
+  const cats = document.getElementById('cats');
+  cats.innerHTML = CATS.map(c => {
+    const ps = PROBLEMS.filter(p => p.cat === c.id), done = ps.filter(p => progress.has(p.id)).length;
+    return `<button class="cat" role="tab" type="button" data-cat="${c.id}" aria-selected="${c.id === state.cat}">
+      <svg class="ico" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">${ICONS[c.id]}</svg>
+      <span><span class="nm">${c.name}</span><span class="ct">${done} / ${ps.length}</span></span></button>`;
+  }).join('');
+  document.getElementById('catDesc').textContent = CATS.find(c => c.id === state.cat).desc;
+  const ps = PROBLEMS.filter(p => p.cat === state.cat);
+  document.getElementById('probs').innerHTML = ps.map((p, i) =>
+    `<button class="chip ${p.id === state.pid ? 'on' : ''}" type="button" data-pid="${p.id}" title="${esc(p.title)}">${i + 1}${progress.has(p.id) ? '<span class="done">✓</span>' : ''}</button>`).join('');
+  document.getElementById('pNum').textContent = progress.size;
+  document.getElementById('pAll').textContent = PROBLEMS.length;
+  document.getElementById('pBar').style.width = (progress.size / PROBLEMS.length * 100) + '%';
+}
+document.getElementById('cats').addEventListener('click', e => {
+  const b = e.target.closest('[data-cat]'); if (!b) return;
+  const ps = PROBLEMS.filter(p => p.cat === b.dataset.cat);
+  loadProblem((ps.find(p => !progress.has(p.id)) || ps[0]).id);
+});
+document.getElementById('probs').addEventListener('click', e => {
+  const b = e.target.closest('[data-pid]'); if (b) loadProblem(b.dataset.pid);
+});
+
+/* ---------- 凡例 ---------- */
+document.getElementById('legendGrid').innerHTML = [
+  ['term', '開始', '端子', 'フローチャートの「開始」と「終了」を表します。'],
+  ['proc', '処理', '処理', '計算・代入・入力・表示などの処理を表します。'],
+  ['dec', '条件', '判断', '条件によって進む道を Yes / No に分けます。'],
+  ['ls', 'ループ1\n繰り返しの条件', 'ループ端（始め）', '繰り返しの始まり。名前と繰り返す条件を書きます。'],
+  ['le', 'ループ1', 'ループ端（終わり）', '繰り返しの終わり。始めと同じ名前を書いて対応させます。'],
+].map(([s, t, name, d]) => `<div class="lg">${shapeSvg(s, t, 0.42)}<div><b>${name}</b><span>${d}</span></div></div>`).join('') +
+  `<div class="lg"><svg width="40" height="42" viewBox="0 0 40 42" aria-hidden="true"><path class="ln" d="M20 4 V34"/><path class="ah" d="M14 30 L20 40 L26 30 z"/></svg><div><b>線・矢印</b><span>処理の流れる順番を表します。基本は上から下へ進みます。</span></div></div>`;
+
+/* ---------- 問題の読み込み ---------- */
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function loadProblem(pid) {
+  stopTrace(); trace = null;
+  const p = byId[pid];
+  state.pid = pid; state.cat = p.cat; state.placed = {}; state.marks = {}; state.sel = null; state.solved = false; state.hint = false;
+  const list = [], seen = new Set();
+  [...p.slots.map(n => [n.t, n.text]), ...p.decoys].forEach(([s, text]) => {
+    const key = s + '|' + text; if (seen.has(key)) return; seen.add(key); list.push({ s, text });
+  });
+  state.blocks = {}; list.forEach((b, i) => { b.id = 'b' + i; state.blocks[b.id] = b; });
+  state.order = shuffle(list.map(b => b.id));
+  const idx = PROBLEMS.filter(x => x.cat === p.cat).indexOf(p) + 1;
+  document.getElementById('qNo').textContent = `${CATS.find(c => c.id === p.cat).name} ・ 問題 ${idx}`;
+  document.getElementById('qTitle').textContent = p.title;
+  document.getElementById('qText').textContent = p.text;
+  document.getElementById('qInputs').innerHTML = p.inputs ? `入力する値の例${p.inputLabel ? `（${esc(p.inputLabel)}）` : ''}：<code>${p.inputs.join(', ')}</code>` : '';
+  document.getElementById('fb').className = 'feedback'; document.getElementById('fb').innerHTML = '';
+  renderNav(); renderPalette(); renderChart(); renderTrace();
+}
+
+/* ---------- ブロック置き場 ---------- */
+const palette = document.getElementById('palette');
+function renderPalette() {
+  const used = new Set(Object.values(state.placed));
+  const items = state.order.filter(id => !used.has(id));
+  palette.innerHTML = items.length ? items.map(id => {
+    const b = state.blocks[id];
+    return `<button class="blk ${state.sel === id ? 'sel' : ''}" type="button" data-id="${id}" aria-pressed="${state.sel === id}" aria-label="${SHAPE_NAME[b.s]}「${esc(flat(b.text))}」">${shapeSvg(b.s, b.text, 0.82)}</button>`;
+  }).join('') : '<div class="empty">ブロックはすべて置きました。</div>';
+}
+function place(bid, nid) {
+  Object.keys(state.placed).forEach(k => { if (state.placed[k] === bid) { delete state.placed[k]; delete state.marks[k]; } });
+  state.placed[nid] = bid; delete state.marks[nid];
+  state.sel = null; changed();
+}
+function changed() {
+  if (state.solved) { state.solved = false; stopTrace(); trace = null; renderTrace(); }
+  const fb = document.getElementById('fb'); if (fb.classList.contains('ok')) { fb.className = 'feedback'; fb.innerHTML = ''; }
+  renderPalette(); renderChart();
+}
+
+let suppressClick = false, drag = null, ghost = null;
+palette.addEventListener('click', e => {
+  const b = e.target.closest('.blk'); if (!b) return;
+  if (suppressClick) { suppressClick = false; return; }
+  state.sel = state.sel === b.dataset.id ? null : b.dataset.id;
+  renderPalette(); renderChart();
+});
+palette.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.blk'); if (!b || e.button > 0) return;
+  drag = { el: b, id: b.dataset.id, x: e.clientX, y: e.clientY, on: false, pid: e.pointerId, over: null };
+});
+function slotAt(x, y) { const el = document.elementFromPoint(x, y); return el && el.closest ? el.closest('[data-slot]') : null; }
+window.addEventListener('pointermove', e => {
+  if (!drag || e.pointerId !== drag.pid) return;
+  if (!drag.on) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return;
+    drag.on = true; const r = drag.el.getBoundingClientRect();
+    drag.dx = e.clientX - r.left; drag.dy = e.clientY - r.top;
+    ghost = drag.el.cloneNode(true); ghost.classList.add('ghost'); ghost.style.width = r.width + 'px';
+    document.body.appendChild(ghost);
+    state.sel = drag.id; renderChart();
+  }
+  e.preventDefault();
+  ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px)`;
+  const s = slotAt(e.clientX, e.clientY), id = s && s.dataset.slot;
+  if (id !== drag.over) {
+    chart.querySelectorAll('.over').forEach(x => x.classList.remove('over'));
+    if (s) s.classList.add('over'); drag.over = id;
+  }
+}, { passive: false });
+function endDrag(e, cancel) {
+  if (!drag) return;
+  if (drag.on) {
+    const s = !cancel && slotAt(e.clientX, e.clientY);
+    if (ghost) ghost.remove(); ghost = null; suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 0);
+    if (s) place(drag.id, s.dataset.slot); else { state.sel = null; renderPalette(); renderChart(); }
+  }
+  drag = null;
+}
+window.addEventListener('pointerup', e => endDrag(e, false));
+window.addEventListener('pointercancel', e => endDrag(e, true));
+
+/* ---------- 場所をタップ ---------- */
+function slotAction(nid) {
+  if (state.sel) { place(state.sel, nid); return; }
+  if (state.placed[nid]) { delete state.placed[nid]; delete state.marks[nid]; changed(); return; }
+  setFb('info', '<p>先にブロックを選んでから、この場所をタップしてね。</p>');
+}
+chart.addEventListener('click', e => { const s = e.target.closest('[data-slot]'); if (s) slotAction(s.dataset.slot); });
+chart.addEventListener('keydown', e => {
+  const s = e.target.closest('[data-slot]');
+  if (s && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); slotAction(s.dataset.slot); setTimeout(() => { const n = chart.querySelector(`[data-slot="${s.dataset.slot}"]`); n && n.focus(); }); }
+});
+
+/* ---------- 答え合わせ ---------- */
+const fbEl = document.getElementById('fb');
+function setFb(kind, html) { fbEl.className = 'feedback ' + kind; fbEl.innerHTML = html; }
+document.getElementById('btnCheck').addEventListener('click', () => {
+  const p = byId[state.pid]; let empty = 0; const msgs = []; state.marks = {};
+  p.slots.forEach(n => {
+    const b = state.blocks[state.placed[n.nid]];
+    if (!b) { empty++; return; }
+    const ok = b.s === n.t && b.text === n.text;
+    state.marks[n.nid] = ok ? 'ok' : 'ng';
+    if (!ok) msgs.push(b.s !== n.t ? `${CIRC[n.no]} は記号の形がちがいます。どの記号を使う場面かな？` : `${CIRC[n.no]} は記号は合っていますが、書かれている内容がちがいます。`);
+  });
+  state.sel = null;
+  if (empty) msgs.push(`まだ空いている場所が ${empty} か所あります。`);
+  if (!msgs.length) {
+    state.solved = true; progress.add(p.id); saveProgress();
+    const next = PROBLEMS[PROBLEMS.indexOf(p) + 1];
+    setFb('ok', `<h3>正解！</h3><p>${esc(p.explain)}</p><p>下の「動きを確かめる」で、1ステップずつ実行してみよう。</p>${next ? `<button class="btn primary next" type="button" id="btnNext">次の問題へ →</button>` : '<p><b>全部の問題をクリアしました。おつかれさま！</b></p>'}`);
+    const nb = document.getElementById('btnNext'); if (nb) nb.addEventListener('click', () => { loadProblem(next.id); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    renderNav(); startTrace();
+  } else {
+    setFb('ng', `<h3>もう少し！</h3><ul>${msgs.map(m => `<li>${m}</li>`).join('')}</ul><p>赤い番号のブロックをタップすると、置き場に戻せます。</p>`);
+  }
+  renderPalette(); renderChart();
+});
+document.getElementById('btnHint').addEventListener('click', () => setFb('info', `<h3>ヒント</h3><p>${esc(byId[state.pid].hint)}</p>`));
+document.getElementById('btnReset').addEventListener('click', () => loadProblem(state.pid));
+
+/* ---------- 実行トレース ---------- */
+function runFlow(p, inputs) {
+  const v = {}, outs = [], steps = []; let k = 0;
+  const io = {
+    read() { if (k >= inputs.length) throw new Error('入力する値が足りません。値を増やしてください。'); return inputs[k++]; },
+    print(s) { outs.push(String(s)); },
+  };
+  const rec = (n, note) => { steps.push({ nid: n.nid, note, vars: { ...v }, out: [...outs] }); if (steps.length > 800) throw new Error('繰り返しが多すぎます。'); };
+  const seq = list => list.forEach(node);
+  function node(n) {
+    if (n.t === 'term') rec(n, n.text === '開始' ? 'プログラムを開始します。' : 'プログラムを終了します。');
+    else if (n.t === 'proc') { const note = n.run ? n.run(v, io) : null; rec(n, note || n.text); }
+    else if (n.t === 'if') { const r = n.cond.test(v); rec(n.cond, `「${flat(n.cond.text)}」は${r ? '成り立つ → Yes の道へ' : '成り立たない → No の道へ'}`); seq(r ? n.yes : n.no); }
+    else if (n.t === 'while') {
+      for (;;) { const r = n.cond.test(v); rec(n.cond, `「${flat(n.cond.text)}」は${r ? '成り立つ → Yes：繰り返す' : '成り立たない → No：ループを抜ける'}`); if (!r) break; seq(n.body); }
+    } else if (n.t === 'loop') {
+      const h = n.head; v[h.v] = h.from; let first = true;
+      for (;;) {
+        const go = v[h.v] <= h.to;
+        rec(h, `${h.v} = ${v[h.v]}${first ? '（最初の値）' : ''}：${go ? `${h.to} 以下なので中の処理を実行する` : `${h.to} をこえたのでループを抜ける`}`);
+        if (!go) break; first = false;
+        seq(n.body);
+        rec(n.tail, `ループ1 の始めに戻り、${h.v} を ${h.by} 増やす`);
+        v[h.v] += h.by;
+      }
+    }
+  }
+  try { seq(p.flow); } catch (e) { steps.push({ nid: null, note: e.message, vars: { ...v }, out: [...outs], err: true }); }
+  return steps;
+}
+const traceEl = document.getElementById('trace');
+function renderTrace() {
+  const p = byId[state.pid];
+  if (!state.solved || !trace) {
+    traceEl.innerHTML = `<h3>動きを確かめる</h3><p class="lock">すべての場所に正しいブロックを置くと、フローチャートを1ステップずつ実行して、変数の値や表示される内容を確かめられます。</p>`;
+    return;
+  }
+  traceEl.innerHTML = `<h3>動きを確かめる</h3>
+    ${p.inputs ? `<div class="t-row"><label for="tIn">入力する値${p.inputLabel ? `（${esc(p.inputLabel)}）` : ''}をカンマ区切りで</label><input id="tIn" type="text" value="${trace.inputs.join(', ')}"><button class="btn" type="button" id="tApply">この値で実行</button></div>` : ''}
+    <div class="t-row">
+      <button class="btn" type="button" id="tFirst">最初から</button>
+      <button class="btn" type="button" id="tPrev">◀ 戻る</button>
+      <button class="btn primary" type="button" id="tNext">1ステップ進む ▶</button>
+      <button class="btn" type="button" id="tPlay">自動で再生</button>
+    </div>
+    <div class="t-note" id="tNote"></div>
+    <div class="t-grid">
+      <div class="t-box"><h4>変数の値</h4><div class="vars" id="tVars"></div></div>
+      <div class="t-box"><h4>画面への表示</h4><div class="console" id="tOut"></div></div>
+    </div>`;
+  document.getElementById('tFirst').onclick = () => { stopTrace(); trace.i = 0; updateTrace(); };
+  document.getElementById('tPrev').onclick = () => { stopTrace(); trace.i = Math.max(0, trace.i - 1); updateTrace(); };
+  document.getElementById('tNext').onclick = () => { stopTrace(); stepTrace(); };
+  document.getElementById('tPlay').onclick = () => {
+    if (trace.timer) { stopTrace(); return; }
+    if (trace.i >= trace.steps.length - 1) trace.i = 0;
+    trace.timer = setInterval(() => { if (!stepTrace()) stopTrace(); }, 850);
+    document.getElementById('tPlay').textContent = '一時停止'; updateTrace();
+  };
+  const ap = document.getElementById('tApply');
+  if (ap) ap.onclick = () => {
+    const vals = document.getElementById('tIn').value.split(/[,、\s]+/).filter(Boolean).map(x => isNaN(Number(x)) ? x : Number(x));
+    if (!vals.length) { document.getElementById('tNote').innerHTML = '値をカンマで区切って入力してください（例：72, 45）。'; return; }
+    stopTrace(); trace = { inputs: vals, steps: runFlow(p, vals), i: 0, timer: null }; renderTrace();
+  };
+  updateTrace();
+}
+function startTrace() {
+  const p = byId[state.pid]; const inputs = p.inputs ? [...p.inputs] : [];
+  trace = { inputs, steps: runFlow(p, inputs), i: 0, timer: null }; renderTrace();
+}
+function stepTrace() { if (trace.i >= trace.steps.length - 1) return false; trace.i++; updateTrace(); return true; }
+function stopTrace() {
+  if (trace && trace.timer) { clearInterval(trace.timer); trace.timer = null; }
+  const b = document.getElementById('tPlay'); if (b) b.textContent = '自動で再生';
+}
+function updateTrace() {
+  const p = byId[state.pid], st = trace.steps[trace.i], prev = trace.steps[trace.i - 1];
+  document.getElementById('tNote').innerHTML = `<span class="stepno">ステップ ${trace.i + 1} / ${trace.steps.length}</span>${esc(st.note)}`;
+  document.getElementById('tVars').innerHTML = p.vars.map(k => {
+    const val = st.vars[k], chg = prev && prev.vars[k] !== val;
+    return `<span class="var ${chg ? 'chg' : ''}">${k} = ${val === undefined ? '—' : esc(val)}</span>`;
+  }).join('');
+  const o = document.getElementById('tOut');
+  o.innerHTML = st.out.length ? esc(st.out.join('\n')) : '<span class="empty">（まだ何も表示されていません）</span>';
+  o.scrollTop = o.scrollHeight;
+  document.getElementById('tPrev').disabled = trace.i === 0;
+  document.getElementById('tNext').disabled = trace.i >= trace.steps.length - 1;
+  applyHighlight();
+}
+function applyHighlight() {
+  chart.querySelectorAll('.cur').forEach(x => x.classList.remove('cur'));
+  if (!state.solved || !trace) return;
+  const st = trace.steps[trace.i]; if (!st || !st.nid) return;
+  const el = chart.querySelector(`[data-nid="${st.nid}"]`); if (el) el.classList.add('cur');
+}
+
+loadProblem('seq1');
+</script>
+</body>
+</html>
